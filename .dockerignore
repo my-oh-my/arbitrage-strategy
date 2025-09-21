@@ -1,0 +1,47 @@
+# Python specific files and directories
+# ------------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+# These contain local dependencies and are not needed inside the container,
+# which will have its own dependencies installed via requirements.txt.
+env/
+venv/
+.venv/
+
+# Secrets and environment variables
+# CRITICAL: Never copy secrets into a Docker image.
+# These are injected at runtime via docker-compose's `env_file`.
+.env
+.env.*
+
+# Testing artifacts
+.pytest_cache/
+tests/
+
+# IDE and editor specific files
+# These are for local development convenience and have no place in the image.
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+
+# Git specific files
+# The .git directory can be very large and is not needed in the final image.
+.git
+.gitignore
+
+# Jupyter notebooks
+# These are typically for exploration and analysis, not for the running application.
+notebooks/
+
+# Data and logs
+# These directories are mounted as volumes in docker-compose.yml.
+# Their contents are generated at runtime and should not be part of the static image.
+logs/
+data/

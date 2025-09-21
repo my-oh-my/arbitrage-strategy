@@ -1,0 +1,72 @@
+# ==============================================================================
+# Secrets
+# Never commit sensitive credentials or local configuration.
+# ==============================================================================
+.env
+.env.*
+
+# ==============================================================================
+# Python Virtual Environments
+# ==============================================================================
+env/
+venv/
+.venv/
+
+# ==============================================================================
+# Python Artifacts
+# Byte-compiled files, distribution files, etc.
+# ==============================================================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ==============================================================================
+# IDE & Editor Configuration
+# ==============================================================================
+.vscode/
+.idea/
+.project
+.pydevproject
+*.sublime-workspace
+*.sublime-project
+
+# ==============================================================================
+# Testing & Coverage Artifacts
+# ==============================================================================
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+
+# ==============================================================================
+# OS-specific files
+# ==============================================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==============================================================================
+# Logs & Data
+# These directories are managed by Docker volumes and should not be versioned.
+# Use a .gitkeep file in these directories to commit the empty folder structure.
+# ==============================================================================
+logs/
+data/
