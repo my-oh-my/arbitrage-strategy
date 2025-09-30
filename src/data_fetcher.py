@@ -19,7 +19,7 @@ def fetch_market_data(symbol: str, period: str, interval: str) -> pd.DataFrame:
     Raises:
         ValueError: If no data is fetched for the given symbol.
     """
-    data = yf.download(symbol, period=period, interval=interval)
+    data = yf.download(symbol, period=period, interval=interval, auto_adjust=True)
     if data is None or data.empty:
         raise ValueError("No data fetched for the given symbol.")
 
