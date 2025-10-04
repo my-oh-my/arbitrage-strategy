@@ -51,6 +51,9 @@ def run_arbitrage_strategy(symbols: list[str], period: str, interval: str):
         period: The time period to fetch data for (e.g., '1d', '1mo', '1y').
         interval: The data interval (e.g., '1m', '1h', '1d').
     """
+    if len(symbols) != 2:
+        raise ValueError("Exactly two symbols are required for the arbitrage strategy.")
+
     try:
         data1 = fetch_market_data(symbols[0], period, interval)
         data2 = fetch_market_data(symbols[1], period, interval)
