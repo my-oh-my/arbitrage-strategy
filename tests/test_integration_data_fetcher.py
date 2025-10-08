@@ -21,7 +21,7 @@ def test_fetch_market_data_integration():
     assert not data.empty
 
     # Data Quality Checks
-    expected_columns = ["Date", "Close", "High", "Low", "Open", "Volume"]
+    expected_columns = ["Datetime", "Close", "High", "Low", "Open", "Volume"]
     assert all(col in data.columns for col in expected_columns)
 
     # Check for missing values

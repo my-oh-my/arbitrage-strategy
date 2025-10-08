@@ -135,8 +135,12 @@ def test_calculate_correlation_no_variance():
 
 @patch("src.arbitrage.calculate_correlation")
 @patch("src.arbitrage.fetch_market_data")
-def test_run_arbitrage_strategy_calls_fetch_and_calculate(mock_fetch, mock_calc):
+def test_run_arbitrage_strategy_calls_fetch_and_calculate(
+    mock_fetch, mock_calc, sample_data1
+):
     """Test that run_arbitrage_strategy calls fetch_market_data and calculate_correlation."""
+    # Configure the mock to return a valid DataFrame
+    mock_fetch.return_value = sample_data1
     run_arbitrage_strategy(["s1", "s2"], "1d", "1h")
 
     assert mock_fetch.call_count == 2

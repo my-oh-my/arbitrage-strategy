@@ -26,4 +26,8 @@ def fetch_market_data(symbol: str, period: str, interval: str) -> pd.DataFrame:
     # Reset column names and index
     data.columns = data.columns.droplevel(1)
     data.reset_index(inplace=True)
+
+    if "Date" in data.columns:
+        data.rename(columns={"Date": "Datetime"}, inplace=True)
+
     return data

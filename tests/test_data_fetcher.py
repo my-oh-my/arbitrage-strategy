@@ -24,6 +24,7 @@ def test_fetch_market_data_success(_mock_yfinance_download):
         },
         index=pd.to_datetime(["2023-01-01"]),
     )
+    mock_data.index.name = "Datetime"
     _mock_yfinance_download.return_value = mock_data
 
     # Act
@@ -36,7 +37,7 @@ def test_fetch_market_data_success(_mock_yfinance_download):
         result,
         pd.DataFrame(
             {
-                "index": pd.to_datetime(["2023-01-01"]),
+                "Datetime": pd.to_datetime(["2023-01-01"]),
                 "Open": [100],
                 "High": [105],
                 "Low": [95],
