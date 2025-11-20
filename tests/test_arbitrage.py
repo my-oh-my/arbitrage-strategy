@@ -3,29 +3,22 @@
 from unittest.mock import patch
 import pandas as pd
 import pytest
-from src.arbitrage import calculate_correlation, run_arbitrage_strategy
+from src.arbitrage import (
+    calculate_correlation,
+    run_arbitrage_strategy,
+    calculate_spread,
+    generate_signals,
+)
 
 
 @pytest.fixture(name="sample_data1")
 def _sample_data1() -> pd.DataFrame:
     """Fixture for sample data with a positive trend."""
+    dates = pd.date_range(start="2023-01-01", periods=50)
     return pd.DataFrame(
         {
-            "Datetime": pd.to_datetime(
-                [
-                    "2023-01-01",
-                    "2023-01-02",
-                    "2023-01-03",
-                    "2023-01-04",
-                    "2023-01-05",
-                    "2023-01-06",
-                    "2023-01-07",
-                    "2023-01-08",
-                    "2023-01-09",
-                    "2023-01-10",
-                ]
-            ),
-            "Close": [100, 110, 120, 130, 140, 150, 160, 170, 180, 190],
+            "Datetime": dates,
+            "Close": range(100, 150),
         }
     )
 
@@ -33,23 +26,11 @@ def _sample_data1() -> pd.DataFrame:
 @pytest.fixture(name="sample_data2")
 def _sample_data2() -> pd.DataFrame:
     """Fixture for sample data with a positive trend, strongly correlated to sample_data1."""
+    dates = pd.date_range(start="2023-01-01", periods=50)
     return pd.DataFrame(
         {
-            "Datetime": pd.to_datetime(
-                [
-                    "2023-01-01",
-                    "2023-01-02",
-                    "2023-01-03",
-                    "2023-01-04",
-                    "2023-01-05",
-                    "2023-01-06",
-                    "2023-01-07",
-                    "2023-01-08",
-                    "2023-01-09",
-                    "2023-01-10",
-                ]
-            ),
-            "Close": [200, 220, 240, 260, 280, 300, 320, 340, 360, 380],
+            "Datetime": dates,
+            "Close": [x * 2 for x in range(100, 150)],
         }
     )
 
@@ -58,24 +39,12 @@ def _sample_data2() -> pd.DataFrame:
 def _sample_data3() -> pd.DataFrame:
     """Fixture for sample data with a negative trend, constructed to have returns
     that are negatively correlated with sample_data1."""
-    prices = [100, 110, 120, 130, 140, 150, 160, 170, 180, 190]
+    dates = pd.date_range(start="2023-01-01", periods=50)
+    prices = range(100, 150)
     inverted_prices = [20000 / p for p in prices]
     return pd.DataFrame(
         {
-            "Datetime": pd.to_datetime(
-                [
-                    "2023-01-01",
-                    "2023-01-02",
-                    "2023-01-03",
-                    "2023-01-04",
-                    "2023-01-05",
-                    "2023-01-06",
-                    "2023-01-07",
-                    "2023-01-08",
-                    "2023-01-09",
-                    "2023-01-10",
-                ]
-            ),
+            "Datetime": dates,
             "Close": inverted_prices,
         }
     )
@@ -160,3 +129,66 @@ def test_run_arbitrage_strategy_wrong_number_of_symbols(symbols):
         ValueError, match="Exactly two symbols are required for the arbitrage strategy."
     ):
         run_arbitrage_strategy(symbols, "1d", "1h")
+
+
+@pytest.fixture(name="spread_data1")
+def _spread_data1() -> pd.DataFrame:
+    """Fixture for spread calculation test."""
+    dates = pd.date_range(start="2023-01-01", periods=50)
+    return pd.DataFrame(
+        {
+            "Datetime": dates,
+            "Close": range(100, 150),
+        }
+    )
+
+
+@pytest.fixture(name="spread_data2")
+def _spread_data2() -> pd.DataFrame:
+    """Fixture for spread calculation test."""
+    dates = pd.date_range(start="2023-01-01", periods=50)
+    return pd.DataFrame(
+        {
+            "Datetime": dates,
+            "Close": [x * 0.5 for x in range(100, 150)],
+        }
+    )
+
+
+def test_calculate_spread(spread_data1, spread_data2):
+    """Test the calculate_spread function."""
+    # Use a small window for testing
+    window = 10
+    spread_df = calculate_spread(spread_data1, spread_data2, "s1", "s2", window=window)
+
+    assert "Spread" in spread_df.columns
+    assert not spread_df["Spread"].isnull().all()
+
+    # Check that we have fewer rows due to rolling window dropna
+    assert len(spread_df) == len(spread_data1) - window + 1
+
+
+def test_generate_signals():
+    """Test the generate_signals function."""
+    zscore_data = pd.DataFrame(
+        {
+            "Z_Score": [0, 1, 2.5, 1, 0, -1, -2.5, -1, 0],
+        }
+    )
+
+    # Expected signals:
+    # 0: 0 (Flat)
+    # 1: 0 (Flat)
+    # 2.5: -1 (Short Entry > 2)
+    # 1: -1 (Hold Short)
+    # 0: 0 (Exit Short <= 0)
+    # -1: 0 (Flat)
+    # -2.5: 1 (Long Entry < -2)
+    # -1: 1 (Hold Long)
+    # 0: 0 (Exit Long >= 0)
+
+    signals_df = generate_signals(zscore_data, entry_threshold=2.0, exit_threshold=0.0)
+
+    assert "Signal" in signals_df.columns
+    expected_signals = [0, 0, -1, -1, 0, 0, 1, 1, 0]
+    assert signals_df["Signal"].tolist() == expected_signals

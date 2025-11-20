@@ -1,7 +1,9 @@
 """Module for running arbitrage strategy."""
 
 import pandas as pd
+import statsmodels.api as sm
 from statsmodels.tsa.stattools import coint
+from statsmodels.regression.rolling import RollingOLS
 from src.data_fetcher import fetch_market_data
 
 
@@ -61,31 +63,91 @@ def test_cointegration(
 
 
 def calculate_spread(
-    data1: pd.DataFrame, data2: pd.DataFrame, symbol1: str, symbol2: str
+    data1: pd.DataFrame,
+    data2: pd.DataFrame,
+    symbol1: str,
+    symbol2: str,
+    window: int = 30,
 ) -> pd.DataFrame:
-    """Calculates the spread between two symbols."""
+    """Calculates the spread between two symbols using rolling OLS regression."""
     merged_data = pd.merge(
         data1[["Datetime", "Close"]],
         data2[["Datetime", "Close"]],
         on="Datetime",
         suffixes=(f"_{symbol1}", f"_{symbol2}"),
     )
-    merged_data["Ratio"] = (
-        merged_data[f"Close_{symbol1}"] / merged_data[f"Close_{symbol2}"]
-    )
+
+    # Use RollingOLS to find the time-varying hedge ratio
+    y = merged_data[f"Close_{symbol1}"]
+    x = sm.add_constant(merged_data[f"Close_{symbol2}"])
+
+    model = RollingOLS(y, x, window=window)
+    rolling_res = model.fit()
+
+    # Get the hedge ratio (coefficient for the second symbol)
+    hedge_ratio = rolling_res.params[f"Close_{symbol2}"]
+
+    # Calculate the spread
     merged_data["Spread"] = (
-        merged_data[f"Close_{symbol1}"]
-        - merged_data["Ratio"] * merged_data[f"Close_{symbol2}"]
+        merged_data[f"Close_{symbol1}"] - hedge_ratio * merged_data[f"Close_{symbol2}"]
     )
+
+    # Drop NaN values resulting from the rolling window
+    merged_data.dropna(inplace=True)
+
     return merged_data
 
 
-def calculate_zscore(spread_data: pd.DataFrame) -> pd.DataFrame:
-    """Calculates the Z-score of the spread."""
-    spread_data["Z_Score"] = (
-        spread_data["Spread"] - spread_data["Spread"].mean()
-    ) / spread_data["Spread"].std()
+def calculate_zscore(spread_data: pd.DataFrame, window: int = 20) -> pd.DataFrame:
+    """Calculates the rolling Z-score of the spread."""
+    spread_mean = spread_data["Spread"].rolling(window=window).mean()
+    spread_std = spread_data["Spread"].rolling(window=window).std()
+
+    spread_data["Z_Score"] = (spread_data["Spread"] - spread_mean) / spread_std
+
+    # Drop NaN values resulting from the rolling window
+    spread_data.dropna(inplace=True)
+
     return spread_data
+
+
+def generate_signals(
+    zscore_data: pd.DataFrame, entry_threshold: float = 2.0, exit_threshold: float = 0.0
+) -> pd.DataFrame:
+    """Generates trading signals based on Z-score thresholds.
+
+    Args:
+        zscore_data: DataFrame containing the Z-score.
+        entry_threshold: Z-score threshold to enter a position (positive for short spread, negative for long spread).
+        exit_threshold: Z-score threshold to exit a position.
+
+    Returns:
+        DataFrame with a 'Signal' column.
+    """
+    zscore_data["Signal"] = 0  # 0: No Signal, 1: Long Spread, -1: Short Spread
+
+    # Iterate through the data to generate signals (simulating real-time)
+    # Note: Vectorization is faster but iteration is clearer for state-dependent logic
+    position = 0  # 0: Flat, 1: Long, -1: Short
+
+    signals = []
+
+    for z in zscore_data["Z_Score"]:
+        if position == 0:
+            if z < -entry_threshold:
+                position = 1  # Long Spread (Buy s1, Sell s2)
+            elif z > entry_threshold:
+                position = -1  # Short Spread (Sell s1, Buy s2)
+        elif position == 1:
+            if z >= -exit_threshold:
+                position = 0  # Exit Long
+        elif position == -1:
+            if z <= exit_threshold:
+                position = 0  # Exit Short
+        signals.append(position)
+
+    zscore_data["Signal"] = signals
+    return zscore_data
 
 
 def run_arbitrage_strategy(symbols: list[str], period: str, interval: str):
@@ -113,8 +175,9 @@ def run_arbitrage_strategy(symbols: list[str], period: str, interval: str):
             print("The two symbols are likely cointegrated.")
             spread_data = calculate_spread(data1, data2, symbols[0], symbols[1])
             zscore_data = calculate_zscore(spread_data)
-            print("\nSpread and Z-Score:")
-            print(zscore_data[["Datetime", "Spread", "Z_Score"]].tail())
+            signals_data = generate_signals(zscore_data)
+            print("\nSpread, Z-Score, and Signals:")
+            print(signals_data[["Datetime", "Spread", "Z_Score", "Signal"]].tail())
         else:
             print("The two symbols are not cointegrated.")
 
