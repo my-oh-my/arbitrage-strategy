@@ -113,6 +113,7 @@ def test_run_arbitrage_strategy_calls_fetch_and_calculate(
     run_arbitrage_strategy(["s1", "s2"], "1d", "1h")
 
     assert mock_fetch.call_count == 2
+    # Check that it was called once (or check args if needed)
     mock_calc.assert_called_once()
 
 

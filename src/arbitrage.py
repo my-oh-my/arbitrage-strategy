@@ -1,10 +1,21 @@
 """Module for running arbitrage strategy."""
 
+from dataclasses import dataclass
 import pandas as pd
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import coint
 from statsmodels.regression.rolling import RollingOLS
 from src.data_fetcher import fetch_market_data
+
+
+@dataclass
+class StrategyConfig:
+    """Configuration for the arbitrage strategy."""
+
+    spread_window: int = 30
+    zscore_window: int = 20
+    entry_threshold: float = 2.0
+    exit_threshold: float = 0.0
 
 
 def calculate_correlation(
@@ -92,6 +103,9 @@ def calculate_spread(
         merged_data[f"Close_{symbol1}"] - hedge_ratio * merged_data[f"Close_{symbol2}"]
     )
 
+    # Store the hedge ratio for plotting
+    merged_data["HedgeRatio"] = hedge_ratio
+
     # Drop NaN values resulting from the rolling window
     merged_data.dropna(inplace=True)
 
@@ -150,20 +164,36 @@ def generate_signals(
     return zscore_data
 
 
-def run_arbitrage_strategy(symbols: list[str], period: str, interval: str):
+def run_arbitrage_strategy(
+    symbols: list[str],
+    period: str,
+    interval: str,
+    config: StrategyConfig = None,
+    data: tuple[pd.DataFrame, pd.DataFrame] = (None, None),
+):
     """Fetches data for two symbols, calculates their correlation, and prints the results.
 
     Args:
         symbols: A list containing two stock symbols.
         period: The time period to fetch data for (e.g., '1d', '1mo', '1y').
         interval: The data interval (e.g., '1m', '1h', '1d').
+        config: StrategyConfig object containing strategy parameters.
+        data: Optional tuple of DataFrames (data1, data2) to avoid re-fetching.
+
+    Returns:
+        A tuple containing (data1, data2, zscore_data) if successful, otherwise None.
     """
     if len(symbols) != 2:
         raise ValueError("Exactly two symbols are required for the arbitrage strategy.")
 
+    if config is None:
+        config = StrategyConfig()
+
+    data1, data2 = data
     try:
-        data1 = fetch_market_data(symbols[0], period, interval)
-        data2 = fetch_market_data(symbols[1], period, interval)
+        if data1 is None or data2 is None:
+            data1 = fetch_market_data(symbols[0], period, interval)
+            data2 = fetch_market_data(symbols[1], period, interval)
 
         correlation_value = calculate_correlation(data1, data2, symbols[0], symbols[1])
         print(f"\nCorrelation Value: {correlation_value}")
@@ -173,13 +203,26 @@ def run_arbitrage_strategy(symbols: list[str], period: str, interval: str):
 
         if p_value < 0.05:
             print("The two symbols are likely cointegrated.")
-            spread_data = calculate_spread(data1, data2, symbols[0], symbols[1])
-            zscore_data = calculate_zscore(spread_data)
-            signals_data = generate_signals(zscore_data)
-            print("\nSpread, Z-Score, and Signals:")
-            print(signals_data[["Datetime", "Spread", "Z_Score", "Signal"]].tail())
         else:
             print("The two symbols are not cointegrated.")
 
+        # Always calculate spread and Z-score for analysis/plotting purposes
+        spread_data = calculate_spread(
+            data1, data2, symbols[0], symbols[1], window=config.spread_window
+        )
+        zscore_data = calculate_zscore(spread_data, window=config.zscore_window)
+        signals_data = generate_signals(
+            zscore_data,
+            entry_threshold=config.entry_threshold,
+            exit_threshold=config.exit_threshold,
+        )
+
+        if p_value < 0.05:
+            print("\nSpread, Z-Score, and Signals:")
+            print(signals_data[["Datetime", "Spread", "Z_Score", "Signal"]].tail())
+
+        return data1, data2, signals_data
+
     except ValueError as e:
         print(f"Error fetching data: {e}")
+        return None, None, None
