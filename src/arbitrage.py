@@ -10,7 +10,14 @@ from src.data_fetcher import fetch_market_data
 
 @dataclass
 class StrategyConfig:
-    """Configuration for the arbitrage strategy."""
+    """Configuration key parameters for the arbitrage strategy.
+
+    Attributes:
+        spread_window: Rolling window size for the spread calculation (OLS).
+        zscore_window: Rolling window size for the Z-score calculation.
+        entry_threshold: Z-score value to trigger a position entry.
+        exit_threshold: Z-score value to trigger a position exit.
+    """
 
     spread_window: int = 30
     zscore_window: int = 20
@@ -171,17 +178,23 @@ def run_arbitrage_strategy(
     config: StrategyConfig = None,
     data: tuple[pd.DataFrame, pd.DataFrame] = (None, None),
 ):
-    """Fetches data for two symbols, calculates their correlation, and prints the results.
+    """Fetches data, calculates statistics, and generates trading signals.
 
     Args:
-        symbols: A list containing two stock symbols.
+        symbols: A list containing exactly two stock symbols.
         period: The time period to fetch data for (e.g., '1d', '1mo', '1y').
         interval: The data interval (e.g., '1m', '1h', '1d').
-        config: StrategyConfig object containing strategy parameters.
-        data: Optional tuple of DataFrames (data1, data2) to avoid re-fetching.
+        config: Strategy configuration object containing window sizes and thresholds.
+            If None, a default StrategyConfig is used.
+        data: Optional tuple of (data1, data2) DataFrames to avoid re-fetching data.
+            Useful for optimization loops.
 
     Returns:
-        A tuple containing (data1, data2, zscore_data) if successful, otherwise None.
+        A tuple containing (data1, data2, signals_data).
+        - data1: DataFrame for the first symbol.
+        - data2: DataFrame for the second symbol.
+        - signals_data: DataFrame with columns ['Spread', 'Z_Score', 'Signal', 'HedgeRatio'].
+        Returns (None, None, None) if an error occurs.
     """
     if len(symbols) != 2:
         raise ValueError("Exactly two symbols are required for the arbitrage strategy.")

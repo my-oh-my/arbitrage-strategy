@@ -7,18 +7,21 @@ import pandas as pd
 def calculate_pnl(
     data1: pd.DataFrame, data2: pd.DataFrame, signals_data: pd.DataFrame
 ) -> dict:
-    """Calculates PnL and performance metrics for the strategy.
+    """Calculates Profit & Loss (PnL) and strategy performance metrics.
+
+    Computes daily PnL based on the signals and the hedge ratio, then derives
+    cumulative statistics.
 
     Args:
         data1: DataFrame for the first symbol (must contain 'Close').
         data2: DataFrame for the second symbol (must contain 'Close').
-        signals_data: DataFrame containing 'Signal' and 'HedgeRatio'.
+        signals_data: DataFrame containing 'Signal' and 'HedgeRatio' columns.
 
     Returns:
-        A dictionary containing performance metrics:
-        - 'Total Return': Cumulative PnL.
-        - 'Sharpe Ratio': Annualized Sharpe Ratio.
-        - 'Max Drawdown': Maximum drawdown percentage (based on cumulative PnL).
+        A dictionary containing:
+        - 'Total Return': The absolute cumulative PnL at the end of the period.
+        - 'Sharpe Ratio': Annualized Sharpe Ratio (assuming 0 risk-free rate).
+        - 'Max Drawdown': Maximum absolute drawdown from the peak PnL.
     """
     # Ensure indices match
     common_index = signals_data.index

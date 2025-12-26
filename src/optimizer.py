@@ -8,17 +8,21 @@ from src.data_fetcher import fetch_market_data
 
 
 class GridSearchOptimizer:
-    """Optimizes strategy hyperparameters using Grid Search.
+    """Optimizes strategy hyperparameters using a comprehensive Grid Search.
+
+    Iterates through all combinations of the provided search space to find
+    the parameters that maximize the Sharpe Ratio.
 
     Attributes:
-        symbols: List of symbols to optimize for.
-        period: Data period.
+        symbols: List of two symbols to optimize for.
+        period: Time period for data fetching.
         interval: Data interval.
-        search_params: Dictionary to hold search space.
-        spread_windows: Search space for spread window.
-        zscore_windows: Search space for zscore window.
-        entry_thresholds: Search space for entry thresholds.
-        exit_thresholds: Search space for exit thresholds.
+        search_params: Dictionary defining the search space for each parameter.
+            Keys should be: 'spread_windows', 'zscore_windows', 'entry_thresholds', 'exit_thresholds'.
+        spread_windows: List of values to test for the spread calculation window.
+        zscore_windows: List of values to test for the Z-score calculation window.
+        entry_thresholds: List of values to test for the entry threshold.
+        exit_thresholds: List of values to test for the exit threshold.
     """
 
     # pylint: disable=too-many-instance-attributes
@@ -95,10 +99,13 @@ class GridSearchOptimizer:
             return None
 
     def optimize(self) -> pd.DataFrame:
-        """Runs the optimization process.
+        """Executes the grid search optimization.
+
+        Fetches data once and then iterates through all parameter combinations.
 
         Returns:
-            DataFrame containing results for all combinations, sorted by Sharpe Ratio.
+            A pandas DataFrame containing performance metrics for each combination,
+            sorted by Sharpe Ratio in descending order.
         """
         results = []
         combinations = list(

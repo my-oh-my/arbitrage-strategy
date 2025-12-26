@@ -8,7 +8,11 @@ from plotly.subplots import make_subplots
 def plot_dual_prices(
     data1: pd.DataFrame, data2: pd.DataFrame, symbol1: str, symbol2: str
 ):
-    """Plots the normalized prices of two symbols."""
+    """Plots the normalized prices of two symbols for comparison.
+
+    Normalizes the 'Close' prices of both symbols to start at 100 to allow
+    for easy visual comparison of relative performance over time.
+    """
     # Normalize prices to start at 100
     norm_data1 = data1["Close"] / data1["Close"].iloc[0] * 100
     norm_data2 = data2["Close"] / data2["Close"].iloc[0] * 100
@@ -30,7 +34,12 @@ def plot_dual_prices(
 
 
 def plot_zscore_and_signals(zscore_data: pd.DataFrame):
-    """Plots the Z-score with entry/exit thresholds and trading signals."""
+    """Plots the Z-score and spread with trading signals.
+
+    Creates a 2-row subplot:
+    1. Z-Score with entry/exit thresholds and markers for Buy/Sell signals.
+    2. The underlying Spread value.
+    """
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1)
 
     # Z-Score Plot
@@ -146,7 +155,15 @@ def plot_dashboard(
     symbol1: str,
     symbol2: str,
 ):
-    """Plots a comprehensive dashboard of the arbitrage strategy results."""
+    """Plots a comprehensive interactive dashboard of the strategy results.
+
+    The dashboard includes 5 subplots:
+    1. Candlestick chart for both symbols (dual-axis).
+    2. Normalized price comparison (start=100).
+    3. Price vs Hedged Price (visualizing the spread components).
+    4. Z-Score with thresholds and signal markers.
+    5. The Spread value over time.
+    """
     # Normalize prices
     norm_data1 = data1["Close"] / data1["Close"].iloc[0] * 100
     norm_data2 = data2["Close"] / data2["Close"].iloc[0] * 100
